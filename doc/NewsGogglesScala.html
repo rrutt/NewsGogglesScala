@@ -1,0 +1,840 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+<head>
+  <title>News Goggles - Rules Engine in Prolog and Java</title>
+</head>
+
+<body>
+  <h3>The Setup</h3>
+
+  <p><b>News Goggles</b> is the name of an imaginary web site focused on daily
+  news feeds. A proof-of-concept rules engine uses Prolog and Java integration
+  to apply <em>matchmaker</em> rules. These rules dispatch news feeds to
+  readers based on their personal preferences.</p>
+
+  <p>This demonstration rules engine uses <a title="tuProlog" href=
+  "http://alice.unibo.it/xwiki/bin/view/Tuprolog/" target="_blank">tuProlog</a>
+  (also known as <strong>2p</strong>) from the <a title="University of Bologna"
+  href="http://www.eng.unibo.it/PortaleEn/default.htm" target=
+  "_blank">University of Bologna</a>.</p>
+
+  <p>The News Goggles demo implementation is in the public domain and is
+  available for download from this web folder: <a title=
+  "News Goggles on SkyDrive" href=
+  "https://skydrive.live.com/redir.aspx?cid=83f9cbdabbc0c437&resid=83F9CBDABBC0C437!271&parid=root"
+  target="_blank">News Goggles on SkyDrive</a></p>
+
+  <p>To run the demo, download the <strong>NewsGoggles.jar</strong> file. Open
+  a command-prompt (terminal) window and navigate to the folder containing the
+  JAR file. Enter one of the following commands. The program will process
+  rules, display progress messages and results, and then exit.</p>
+  <pre>
+  java -jar NewsGoggles.jar
+  
+  java -jar NewsGoggles.jar -trace
+  
+  java -jar NewsGoggles.jar -test
+</pre>
+
+  <p>You can also download the <b>NewsGogglesGui.jar</b> file for an
+  interactive development environment (IDE) that has the News Goggles rules
+  engine already loaded. Double-click on the downloaded JAR file, or enter the
+  following command in a command-prompt (terminal) window.</p>
+  <pre>
+  java -jar NewsGogglesGui.jar
+</pre>
+
+  <p>You can then experiment with the rules engine by entering various goal
+  predicates in the <b>?-</b> input text box. (Remember to end each goal with a
+  period.) After entering a goal, press the keyboard <b>Enter</b> key and then
+  click on both the <b>Solution</b> and <b>Output</b> tabs to review the
+  results. Some example goals:</p>
+  <pre>
+  subscriber_articles('@Alice', ResultList).
+  
+  subscriber_articles('@Bob', ResultList).
+  
+  all_subscriber_feeds(ResultList).
+  
+  provider_readers('$CNN', ResultList).
+  
+  provider_readers('$FOX', ResultList).
+  
+  all_provider_readers(ResultList).
+  
+  show_news('@Alice').
+  
+  show_news('@Bob').
+  
+  show_all_news
+  
+  test.
+</pre>
+
+  <p>You can download the Java and Prolog source code as
+  <strong>NewsGoggles.zip</strong> Expand this ZIP file and then copy the
+  resulting folder into your Eclipse workspace as a preconfigured project. To
+  build and run the project in Eclipse, you will also need to download the
+  <strong>2p-2.2.zip</strong> file; expand it and copy the resulting folder
+  into your Eclipse workspace as another project beside the NewsGoggles folder.
+  (Note that this 2p-2.2.zip file is subject to the <a title="LGPL license"
+  href="http://www.gnu.org/copyleft/lesser.html" target="_blank">LGPL
+  license</a>.)</p>
+  <hr>
+
+  <h3>The Application</h3>
+
+  <p>Here are the requirements for the News Goggles rules engine:</p>
+
+  <ol>
+    <li><em>Providers</em> publish <em>Articles</em>.</li>
+
+    <li><em>Subscribers</em> open the web site to review Articles.</li>
+
+    <li>The Providers tag each Article with one or more <em>Topics</em>.</li>
+
+    <li>Each Subscriber registers a set of <em>Subscription Rules</em>:
+
+      <ul>
+        <li>A Subscriber can <b>Like</b> any number of Providers and/or
+        Topics.</li>
+
+        <li>A Subscriber can also <b>Dislike</b> any number of Providers and/or
+        Topics.</li>
+
+        <li><b>Dislike</b> rules override <b>Like</b> rules.</li>
+      </ul>
+    </li>
+
+    <li>A Subscriber can also enter <em>Exception Rules</em> that override
+    their Subscription Rules:
+
+      <ul>
+        <li>A Subscriber can <b>Allow</b> a specific combination of Provider
+        covering a Topic.</li>
+
+        <li>A Subscriber can <b>Block</b> a specific combination of Provider
+        covering a Topic.</li>
+
+        <li><b>Block</b> rules override <b>Allow</b> rules.</li>
+      </ul>
+    </li>
+
+    <li>
+      <b>Identifier conventions:</b> Except for Articles, identifiers are
+      Prolog apostrophe-quoted atoms.
+
+      <ul>
+        <li>Articles are identified by arbitrary unique integers. The content
+        of each Article is a quote-delimited Prolog string.</li>
+
+        <li>Providers are identified with a <b>$</b> prefix. Examples:
+        <b>'$CNN' '$FOX' '$ESPN' '$CBC' '$NBC' '$Wired' '$NYTimes'</b></li>
+
+        <li>Topics are identified with a <b>#</b> prefix. Examples: <b>'#world'
+        '#usa' '#sports' '#entertainment' '#business' '#politics'
+        '#opinion'</b></li>
+
+        <li>Subscribers are identified with an <b>@</b> prefix. Examples:
+        <b>'@Alice' '@Bob' '@Chris' '@Pat'</b></li>
+      </ul>
+    </li>
+  </ol>
+  <hr>
+
+  <p>Let's see how this looks in Prolog notation. As you might infer, any text
+  following the <b>%</b> character to the end of the line is a comment. Inline
+  and block comments wrapped in <b>/*</b> and <b>*/</b> are also allowed.</p>
+  <pre>
+/*
+Data-base of published articles, designated as 
+  <b>article(ArticleId, Provider, Contents).</b>
+  <b>article_topic(ArticleId, Topic).</b>
+*/
+
+  article(1001, '$ESPN', "Tigers sign Prince Fielder.").
+  article_topic(1001, '#sports').
+  article_topic(1001, '#baseball').
+  article_topic(1001, '#detroit').
+  
+  article(1002, '$ESPN', "Peyton Manning home team locker to be used by arch-nemesis Tom Brady?").
+  article_topic(1002, '#sports').
+  article_topic(1002, '#indianapolis').
+  article_topic(1002, '#football').
+  
+  article(2001, '$FOX', "Newt nabs South Carolina.").
+  article_topic(2001, '#politics').
+  article_topic(2001, '#republicans').
+  
+  article(2002, '$FOX', "Do we need to go back to the moon?").
+  article_topic(2002, '#usa').
+  article_topic(2002, '#opinion').
+  
+  article(3001, '$CNN', "Obama visits Michigan.").
+  article_topic(3001, '#politics').
+  article_topic(3001, '#democrats').
+  article_topic(3001, '#detroit').
+  
+  article(3002, '$CNN', "Obama urges congress to act in election year.").
+  article_topic(3002, '#politics').
+  article_topic(3002, '#democrats').
+  article_topic(3002, '#washington').
+  
+  article(4001, '$MSNBC', "Mitt makes moves in Florida.").
+  article_topic(4001, '#politics').
+  article_topic(4001, '#republicans').
+  
+  article(4002, '$MSNBC', "Celebrities attending Super Bowl parties.").
+  article_topic(4002, '#indianapolis').
+  article_topic(4002, '#entertainment').
+
+/*
+Rule-base of Subscriber preferences, designated as:
+  <b>subscriber_likes(Subscriber, ProviderOrTopic).</b>
+  <b>subscriber_dislikes(Subscriber, ProviderOrTopic).</b>
+  <b>subscriber_allows(Subscriber, Provider, Topic).</b>
+  <b>subscriber_blocks(Subscriber, Provider, Topic).</b>
+*/
+
+  subscriber_likes('@Alice', '#politics').
+  subscriber_likes('@Alice', '#sports').
+  subscriber_likes('@Alice', '$CNN').
+  subscriber_likes('@Alice', '$MSNBC').
+  
+  subscriber_likes('@Bob', '#politics').
+  subscriber_likes('@Bob', '#detroit').
+  subscriber_dislikes('@Bob', '#democrats').
+  subscriber_dislikes('@Bob', '$CNN').
+  subscriber_allows('@Bob', '$CNN', '#detroit').
+  
+  subscriber_likes('@Chris', '#politics').
+  subscriber_dislikes('@Chris', '$FOX').
+  
+  subscriber_likes('@Pat', '$FOX').
+  subscriber_likes('@Pat', '#sports').
+  subscriber_likes('@Pat', '#republicans').
+  subscriber_blocks('@Pat', '$FOX', '#opinion').
+  
+</pre>
+  <hr>
+
+  <p>These examples show our data model for storing the news feed data and the
+  preference rules. Here is a <em>view</em> that implements a join between the
+  <b>article</b> and <b>article_topic</b> tables:</p>
+  <pre>
+% Given an Article identifier, fetch the Provider and one of its Topics.
+% Back-track into this to obtain any alternate Topics.
+
+article_provider_topic(A, P, T) :-
+  article(A, P, _),
+  article_topic(A, T),
+  trace(' A:'), trace(A),
+  trace(' P:'), trace(P),
+  trace(' T:'), trace(T),
+  trace_nl.
+</pre>
+
+  <p>Note the calls to the <b>trace</b> and <b>trace_nl</b> predicates. These
+  are examples of custom predicates written in Java. They demonstrate the power
+  of Prolog environments like tuProlog that interoperate with Java. The Java
+  logic behind these two predicates appears later in this tutorial.</p>
+
+  <p>Also note the comment about <em>backtracking</em>. This is one of the key
+  features of Prolog that helps implement rules engines. It is also a feature
+  that can make debugging a Prolog program <em>interesting</em>. Most
+  functional programming languages do not explicitly provide backtracking. The
+  backtracking feature is one reason that Prolog is often called a <em>logic
+  programming</em> language rather than <em>functional</em>.</p>
+
+  <p>Now might be a good time to divert your attention to an excellent short
+  article on <em>backtracing and unification</em> in Prolog. The following link
+  opens in a new tab/window. When you have read that article, feel free to
+  return to this page and resume this tutorial.</p>
+
+  <p><a title="Prolog Under the Hood: An Honest Look" href=
+  "http://www.amzi.com/articles/prolog_under_the_hood.htm" target=
+  "_blank">Prolog Under the Hood: An Honest Look</a></p>
+
+  <p><b>Amzi! inc.</b> provides a longer tutorial course on the Prolog
+  language. They also provide a full-featured Prolog interactive environment
+  that is free for non-commercial use. (Click on the <b>Home</b> link at the
+  top of the following tutorial page for more information.) Here is their
+  language tutorial.</p>
+
+  <p><a title="Adventure in Prolog" href=
+  "http://www.amzi.com/AdventureInProlog/index.php" target="_blank">Adventure
+  in Prolog</a></p>
+  <hr>
+
+  <p>Now we need to define the core <em>rules engine</em> as a set of Prolog
+  predicates. These predicates apply the Subscriber preferences from the
+  dynamic rule base in a specific precedence hierarchy determined by the
+  business requirements.</p>
+
+  <p>Here are some mid-level rules that map individual preferences rules into
+  higher level assertions that correspond to the business requirements. Each
+  predicate contains a body of several sub-clauses. Variables (tokens that
+  start with an uppercase letter) referenced in the clauses may be
+  <em>bound</em> or <em>free</em> (also called <em>unbound</em>). The logic
+  runtime attempts to make a clause <em>succeed</em> (evaluate to <b>true</b>)
+  by assigning values to any <em>free</em> variables in the clause. The
+  existing values of <em>bound</em> variables constrain the solution.</p>
+
+  <p>If any sub-clause in an assertion body <em>fails</em> (evaluates to
+  <b>false</b>), the backtracking feature engages. The system moves backward
+  thru the body clauses looking for one that can supply alternate values for
+  its originally <em>free</em> variables. If an alternate solution exists for
+  the sub-clause, the logic runtime starts moving forward again thru the
+  following sub-clauses.</p>
+
+  <p>Each predicate can have several alternate bodies that attempt to satisfy
+  the assertion. If one body <em>fails</em> after all backtracking iterations,
+  the logic runtime evaluates the next body in the predicate. Note that each
+  body can be declared with a different pattern of variables in its head.</p>
+
+  <p>Also note that the <em>caller</em> of the predicate determines which
+  variables are <em>bound</em> or <em>free</em>. A given predicate body
+  typically supports alternate invocation patterns in terms of which variables
+  receive values vs. those that return values (upon a successful
+  evaluation).</p>
+  <pre>
+/*
+Mid-level rules engine predicates.
+*/
+  
+subscriber_likes_article(S, A) :-
+  trace(S), trace(' likes P for A? '), trace(A), trace_nl,
+  article(A, P, _),
+  trace( 'A:'), trace(A),
+  trace(' P:'), trace(P),
+  trace_nl,
+  subscriber_likes(S, P),
+  trace('+ '), trace(S), trace(' likes P '), trace(P), trace_nl.
+subscriber_likes_article(S, A) :-
+  trace(S), trace(' likes T for A? '), trace(A), trace_nl,
+  article_topic(A, T),
+  trace( 'A:'), trace(A),
+  trace(' T:'), trace(T),
+  trace_nl,
+  subscriber_likes(S, T),
+  trace('+ '), trace(S), trace(' likes T '), trace(T), trace_nl.
+  
+subscriber_dislikes_article(S, A) :-
+  trace(S), trace(' dislikes P for A? '), trace(A), trace_nl,
+  article(A, P, _),
+  trace( 'A:'), trace(A),
+  trace(' P:'), trace(P),
+  trace_nl,
+  subscriber_dislikes(S, P),
+  trace('- '), trace(S), trace(' dislikes P '), trace(P), trace_nl.
+subscriber_dislikes_article(S, A) :-
+  trace(S), trace(' dislikes T for A? '), trace(A), trace_nl,
+  article_topic(A, T),
+  trace( 'A:'), trace(A),
+  trace(' T:'), trace(T),
+  trace_nl,
+  subscriber_dislikes(S, T),
+  trace('- '), trace(S), trace(' dislikes T '), trace(T), trace_nl.
+  
+subscriber_allows_article(S, A) :-
+  trace(S), trace(' allows P,T A? '), trace(A), trace_nl,
+  article_provider_topic(A, P, T),
+  subscriber_allows(S, P, T),
+  trace('+ '), trace(S), trace(' allows P '), trace(P), trace(', T '), trace(T), trace_nl.
+  
+subscriber_blocks_article(S, A) :-
+  trace(S), trace(' blocks P,T A? '), trace(A), trace_nl,
+  article_provider_topic(A, P, T),
+  subscriber_blocks(S, P, T),
+  trace('- '), trace(S), trace(' blocks P '), trace(P), trace(', T '), trace(T), trace_nl.
+</pre>
+  <hr>
+
+  <p>Next come the top-level rules that apply the hierarchy and precedence
+  relationships defined in the requirements:</p>
+  <pre>
+/*
+Helper predicates to work around apparent tuProlog bugs.
+*/
+
+% Workround for setof/3 when Goal contains _ "don't care" terms?
+
+findall_nodups(Template, Goal, Instances) :-
+  findall(Template, Goal, List),
+  quicksort(List, '@&lt;', OrderedList),
+  no_duplicates(OrderedList, Instances).
+
+
+/*
+Top-level rules engine predicates.
+*/
+
+article_is_visible_to_subscriber(A, S) :-
+  trace(A), trace(' allowed by S? '), trace(S), trace_nl,
+  subscriber_blocks_article(S, A), !,
+  trace('X '), trace(S), trace(' blocks A '), trace(A), trace_nl,
+  fail.
+article_is_visible_to_subscriber(A, S) :-
+  subscriber_allows_article(S, A), !,
+  trace('= '), trace(S), trace(' allows and does not block A '), trace(A), trace_nl.
+article_is_visible_to_subscriber(A, S) :-
+  subscriber_dislikes_article(S, A), !,
+  trace('X '), trace(S), trace(' dislikes A '), trace(A), trace_nl,
+  fail.
+article_is_visible_to_subscriber(A, S) :-
+  subscriber_likes_article(S, A), !,
+  trace('= '), trace(S), trace(' likes and does not block nor dislike A '), trace(A), trace_nl.
+article_is_visible_to_subscriber(A, S) :-
+  trace('X '), trace(S), trace(' ignores A '), trace(A), trace_nl,
+  fail.
+</pre>
+
+  <p>Here we see two new constructs used to influence the backtracking
+  mechanism.</p>
+
+  <ul>
+    <li><b>cut</b> - The exclamation (<b>!</b>) clause acts as a
+    <em>backstop</em> against backtracking. Any attempt to backtrack "above" it
+    is forsaken. Instead, the backtracking mechanism proceeds to the next
+    alternate body for the current predicate (if any).</li>
+
+    <li><b>fail</b> - This clause always evaluates to <em>false</em> and causes
+    the backtracking mechanism to engage.</li>
+  </ul>
+
+  <p>The rules above use <b>cut</b> and <b>fail</b> together as a pattern to
+  enforce the exception logic for the <em>blocks</em> and <em>dislikes</em>
+  preference rules. The <b>fail</b> declares failure for the predicate's
+  assertion, and the <b>!</b> cuts off the backtracker from attempting any
+  alternate bodies for that predicate.</p>
+  <hr>
+
+  <p>The remaining rules implement the highest-level goals to allow the rules
+  engine to interact with the <em>outside world</em> (an interactive human
+  using the GUI IDE or a business application implemented in Java).</p>
+
+  <p>This layer departs from <em>functional</em> purity since it uses
+  side-effect producing input/output statements. This set of predicates resides
+  at the <em>functional/procedural boundary</em> so this impurity must be
+  allowed.</p>
+
+  <p>The underscore (<b>_</b>) is a special <em>don't care</em> variable that
+  pattern-matches with any <em>bound</em> calling value and discards any
+  <em>free</em> evaluation return value.</p>
+  <pre>
+/*
+Helper predicates to work around apparent tuProlog bugs.
+*/
+
+% Workround for setof/3 when Goal contains _ "don't care" terms?
+
+findall_nodups(Template, Goal, Instances) :-
+  findall(Template, Goal, List),
+  quicksort(List, '@&lt;', OrderedList),
+  no_duplicates(OrderedList, Instances).
+
+  
+/*
+High-level result collection goal predicates.
+*/
+
+% Given a Subscriber,
+% return the list of current Article identifiers that match their preferences.
+
+subscriber_article_ids(S, ResultList) :-
+  findall_nodups(A, article(A, _, _), AList),
+  filter_articles_for_subscriber(AList, S, ResultList).
+
+filter_articles_for_subscriber([], _, []).
+filter_articles_for_subscriber([A | Tail], S, [A | TailList]) :-  
+  article_is_visible_to_subscriber(A, S), !,
+  filter_articles_for_subscriber(Tail, S, TailList).
+filter_articles_for_subscriber([A | Tail], S, TailList) :-
+  filter_articles_for_subscriber(Tail, S, TailList).
+
+% Given a Subscriber,
+% return the list of current Article details that match their preferences.
+
+subscriber_articles(S, ResultList) :-
+  subscriber_article_ids(S, ArticleIdList),
+  load_article_list_details(ArticleIdList, ResultList).
+  
+load_article_list_details([], []).
+load_article_list_details([Id | IdTail], [article(Id, Provider, Contents) | ATail]) :-
+  article(Id, Provider, Contents),
+  load_article_list_details(IdTail, ATail).
+load_article_list_details([Id | IdTail], ATail) :-  % Discard any orphaned Article identifer.
+  not(article(Id, _, _)),
+  load_article_list_details(IdTail, ATail).
+  
+% Get master "list of lists" for all Subscriber/Article feeds.
+
+all_subscriber_feeds(ResultList) :-
+  findall_nodups(S, is_subscriber(S), SList),
+  all_subscriber_feeds_for_list(SList, ResultList).
+
+all_subscriber_feeds_for_list([], []).
+all_subscriber_feeds_for_list([S | Tail], [subscriber_feed(S, AList) | TailList]) :-
+  subscriber_articles(S, AList),
+  all_subscriber_feeds_for_list(Tail, TailList).
+
+is_subscriber(S) :-
+  subscriber_likes(S, _);  % Semi-colon means OR.
+  subscriber_allows(S, _, _).
+
+
+% Given a Provider, 
+% return the list of Subscribers that receive at least one of the Provider's Articles.
+% (Can be used to target advertising or premium direct content, etc.) 
+
+provider_readers(P, ResultList) :-
+  findall_nodups(S, is_subscriber(S), SList), !,
+  trace(SList), trace_nl,
+  find_provider_subscribers_for_list(P, SList, ResultList).
+
+find_provider_subscribers_for_list(_, [], []).
+find_provider_subscribers_for_list(P, [S | Tail], [S | NewTail]) :-
+  provider_reaches_subscriber(P, S), !,
+  find_provider_subscribers_for_list(P, Tail, NewTail).
+find_provider_subscribers_for_list(P, [_ | Tail], NewTail) :-
+  find_provider_subscribers_for_list(P, Tail, NewTail).
+
+provider_reaches_subscriber(P, S) :-
+  trace(P), trace(' reaches S? '), trace(S), trace_nl,
+  article(Article, P, _),
+  article_is_visible_to_subscriber(Article, S),
+  trace(P), trace(' does reach '), trace(S), trace_nl.
+    
+% Get master "list of lists" for all Provider/Subscriber sets.
+
+all_provider_readers(ResultList) :-
+  findall_nodups(P, is_provider(P), PList),
+  all_provider_readers_for_list(PList, ResultList).
+
+all_provider_readers_for_list([], []).
+all_provider_readers_for_list([P | Tail], [provider_subscribers(P, SList) | TailList]) :-
+  provider_readers(P, SList),
+  all_provider_readers_for_list(Tail, TailList).
+
+is_provider(P) :-
+  article(_, P, _).
+
+
+% Print out the current Article feed for a Subscriber.  
+
+show_news(S) :-
+  nl, print('Articles subscribed by '), print(S), print(':'), nl,
+  subscriber_articles(S, ArticleList),
+  show_article_list(ArticleList).
+  
+show_article_list([]) :-
+  print('-- End --'), nl.
+show_article_list([article(_, Provider, Contents) | Tail]) :-
+  print('  From: '), print(Provider), nl,
+  print('    '), print(Contents), nl,
+  show_article_list(Tail).
+
+% Print out the current Article feed for all Subscribers.
+
+show_all_news :-
+  findall_nodups(S, is_subscriber(S), SList),
+  show_news_for_list(SList).
+
+show_news_for_list([]).
+show_news_for_list([S | Tail]) :-
+  show_news(S),
+  show_news_for_list(Tail).
+</pre>
+  <hr>
+
+  <p>Here are validation predicates used to regression test any changes to the
+  Prolog source code:</p>
+  <pre>
+test :-
+  disable_trace, test1,
+  disable_trace, test2.
+
+test1 :-
+  ExpectedResultList = 
+    [subscriber_feed('@Alice',[article(1001,'$ESPN','Tigers sign Prince Fielder.'),article(1002,'$ESPN','Peyton Manning home team locker to be used by arch-nemesis Tom Brady?'),article(2001,'$FOX','Newt nabs South Carolina.'),article(3001,'$CNN','Obama visits Michigan.'),article(3002,'$CNN','Obama urges congress to act in election year.'),article(4001,'$MSNBC','Mitt makes moves in Florida.'),article(4002,'$MSNBC','Celebrities attending Super Bowl parties.')]),subscriber_feed('@Bob',[article(1001,'$ESPN','Tigers sign Prince Fielder.'),article(2001,'$FOX','Newt nabs South Carolina.'),article(3001,'$CNN','Obama visits Michigan.'),article(4001,'$MSNBC','Mitt makes moves in Florida.')]),subscriber_feed('@Chris',[article(3001,'$CNN','Obama visits Michigan.'),article(3002,'$CNN','Obama urges congress to act in election year.'),article(4001,'$MSNBC','Mitt makes moves in Florida.')]),subscriber_feed('@Pat',[article(1001,'$ESPN','Tigers sign Prince Fielder.'),article(1002,'$ESPN','Peyton Manning home team locker to be used by arch-nemesis Tom Brady?'),article(2001,'$FOX','Newt nabs South Carolina.'),article(4001,'$MSNBC','Mitt makes moves in Florida.')])]
+  ,
+  all_subscriber_feeds(ActualResultList),
+  enable_trace,
+  trace('Test 1: ExpectedResultList = '), trace_nl, trace(ExpectedResultList), trace_nl,
+  trace('Test 1: ActualResultList = '), trace_nl, trace(ActualResultList), trace_nl,
+  ExpectedResultList = ActualResultList, !,
+  trace('Test 1 Passes!'), trace_nl.
+test1 :-
+  !, 
+  trace('Test 1 Fails.'), trace_nl,
+  fail. 
+
+test2 :-
+  ExpectedResultList = 
+    [provider_subscribers('$CNN',['@Alice','@Bob','@Chris']),provider_subscribers('$ESPN',['@Alice','@Bob','@Pat']),provider_subscribers('$FOX',['@Alice','@Bob','@Pat']),provider_subscribers('$MSNBC',['@Alice','@Bob','@Chris','@Pat'])]
+  ,
+  all_provider_readers(ActualResultList),
+  enable_trace,
+  trace('Test 2: ExpectedResultList = '), trace_nl, trace(ExpectedResultList), trace_nl,
+  trace('Test 2: ActualResultList = '), trace_nl, trace(ActualResultList), trace_nl,
+  ExpectedResultList = ActualResultList, !,
+  trace('Test 2 Passes!'), trace_nl.
+test2 :-
+  !, 
+  trace('Test 2 Fails.'), trace_nl,
+  fail.
+</pre>
+  <hr>
+
+  <h3>Java Integration - Prolog Calling Java</h3>
+
+  <p>Subject to following certain conventions, you can provide your own custom
+  predicates written in Java.</p>
+
+  <p>The <em>unification</em> feature of Prolog, along with the concept of
+  <em>bound</em> and <em>free</em> variables, allows custom predicates to
+  either <em>submit</em> data to the Prolog logic or <em>receive</em> data from
+  it.</p>
+
+  <p>Here is the <b>com.live.rrutt.newsgoggles.lib.PrologLibrary</b> class that
+  implements the custom tracing predicates. The <b>_0</b> and <b>_1</b>
+  suffixes are a required tuProlog convention that indicates the <em>arity</em>
+  of each predicate. (<em>Arity</em> simply means the number of Prolog terms
+  passed to the predicate: unary, binary, ternary, ..., <em>n</em>-ary and thus
+  "ary-ity".)</p>
+  <pre>
+package com.live.rrutt.newsgoggles.lib;
+
+import alice.tuprolog.*;
+import alice.tuprolog.Number;
+
+import java.io.*;
+
+/**
+ * @author Rick Rutt
+ */
+public class PrologLibrary extends Library {
+
+  public static boolean traceEnabled = true;
+
+  protected OutputStream outputStream = System.out;
+
+  public static String stringValueFromTerm(Term t) {
+    String result = "";
+
+    Term tt = t.getTerm();
+    if (tt instanceof Struct) {
+      result = ((Struct) tt).getName();
+      if (result.equals(".")) {
+        result = tt.toString();           
+      }
+    } else if (tt instanceof Number) {
+      Number n = (Number) tt;
+      if (n instanceof Int) {
+        result = new java.lang.Integer(n.intValue()).toString();
+      } else {
+        result = n.toString();
+      }
+    }
+
+    return result;
+  }
+
+  public boolean trace_enabled_0() throws Exception {
+    return traceEnabled;
+  }
+
+  public boolean enable_trace_0() throws Exception {
+    traceEnabled = true;    
+    System.out.println("+++ enable_trace.");
+    return true;
+  }
+
+  public boolean disable_trace_0() throws Exception {
+    traceEnabled = false;   
+    System.out.println("--- disable_trace.");
+    return true;
+  }
+
+  public boolean trace_1(Term arg0) throws Exception {
+    if (traceEnabled) {
+      String text = stringValueFromTerm(arg0);
+      System.out.print(text);
+    }
+    return true;
+  }
+
+  public boolean trace_nl_0() throws Exception {
+    if (traceEnabled) {
+      System.out.print("\n");
+    }
+    return true;
+  }
+}
+</pre>
+  <hr>
+
+  <h3>Java Integration - Java Calling Prolog</h3>
+
+  <p>Here is the main Java application that sets up tuProlog, invokes it to
+  solve a predicate, and displays the returned data.</p>
+
+  <p>The <em>theory</em> text passed into the Prolog engine provides a way to
+  pass initialization data to the Prolog program. Simply use static "assertion"
+  predicates such as:</p>
+  <pre>
+  article(1001, '$ESPN', "Tigers sign Prince Fielder.").
+</pre>
+
+  <p>Note how the <b>showSubscriberFeedsResultList</b> method processes a
+  compound nested-list data structure returned by the Prolog program.</p>
+
+  <p>Also remember that additional custom input/output predicates can be
+  written in Java to interact with the Prolog logic.</p>
+  <pre>
+package com.live.rrutt.newsgoggles;
+
+import com.live.rrutt.newsgoggles.lib.PrologLibrary;
+import com.live.rrutt.tuprolog.util.*;
+
+import alice.tuprolog.*;
+import alice.tuprolog.event.*;
+
+import java.io.*;
+import java.util.List;
+
+public class NewsGoggles implements Serializable, OutputListener {
+
+  public Prolog engine;
+
+  private static Boolean testing = false;
+
+  public NewsGoggles(String[] args) {
+    System.out
+        .println("Rick Rutt's News Goggles - Using the tuProlog system "
+            + Prolog.getVersion());
+
+    PrologLibrary.traceEnabled = false;
+
+    for (String arg : args) {
+      if ((arg.length() &gt; 1) && (arg.charAt(0) == '-')) {
+        if (arg.equalsIgnoreCase("-trace")) {
+          PrologLibrary.traceEnabled = true;
+          System.out.println("Trace output enabled.");
+        } else if (arg.equalsIgnoreCase("-test")) {
+          testing = true;
+          System.out.println("Test mode enabled.");
+        } else {
+          System.out.println("Unknown command argument ignored: "
+              + arg);
+        }
+      } else {
+        System.out.println("Unknown command argument ignored: " + arg);
+      }
+    }
+  }
+
+  private void run() {
+    engine = new Prolog();
+    try {
+      engine.loadLibrary("com.live.rrutt.newsgoggles.lib.PrologLibrary");
+    } catch (Exception ex) {
+      ex.printStackTrace();
+    }
+    engine.addOutputListener(this);
+
+    try {
+      TheoryLoader loader = new TheoryLoader();
+      String theoryText = loader.load();
+
+      Theory theory = new Theory(theoryText);
+      engine.setTheory(theory);
+
+      if (testing) {
+        SolveInfo testInfo = engine.solve("test.");
+        if (testInfo.isSuccess()) {
+          System.out.println("Test run succeeded.");
+        } else {
+          System.out.println("Test run did not succeed.");
+        }
+      } else {
+        SolveInfo info = engine
+            .solve("all_subscriber_feeds(ResultList).");
+
+        if (info.isSuccess()) {
+          System.out.println("Success.");
+          List bindings = info.getBindingVars();
+
+          if (PrologLibrary.traceEnabled) {
+            System.out.println("Bindings:");
+            System.out.println(bindings.toString());
+          }
+
+          Var resultList = (Var) bindings.get(0);
+          showSubscriberFeedsResultList(resultList);
+          
+          System.out.println("Done.");
+        } else {
+          System.out.println("Failure.");
+        }
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  private void showSubscriberFeedsResultList(Var resultList) {
+    System.out.println("\nAll Subscriber Feeds:");
+    
+    Struct feedList = (Struct) resultList.getTerm();
+    while (!feedList.isEmptyList()) {
+      Struct subscriberFeed = (Struct) feedList.getArg(0)
+          .getTerm();
+      feedList = (Struct) feedList.getArg(1).getTerm();
+
+      // System.out.println("  " + subscriberFeed.toString());
+
+      Struct subscriber = (Struct) subscriberFeed.getArg(0)
+          .getTerm();
+      Struct articleList = (Struct) subscriberFeed.getArg(1)
+          .getTerm();
+
+      // System.out.println("  " + subscriber.getName() + " "
+      // + articleList.toString());
+      System.out.println("\n  Feed for " + subscriber.getName()
+          + ":");
+
+      while (!articleList.isEmptyList()) {
+        Struct article = (Struct) articleList.getArg(0)
+            .getTerm();
+        articleList = (Struct) articleList.getArg(1)
+            .getTerm();
+
+        String articleId = PrologLibrary
+            .stringValueFromTerm(article.getArg(0));
+        String provider = PrologLibrary
+            .stringValueFromTerm(article.getArg(1));
+        String contents = PrologLibrary
+            .stringValueFromTerm(article.getArg(2));
+
+        System.out.println("    #" + articleId.toString()
+            + " from " + provider + ": " + contents);
+      }
+    }
+    
+    System.out.println("\n(End of Feeds.)");
+  }
+
+  public void onOutput(OutputEvent ev) {
+    String s = Utilities.stripQuotes(ev.getMsg());
+    System.out.print(s);
+  }
+
+  public static void main(String args[]) {
+    new NewsGoggles(args).run();
+  }
+}
+</pre>
+</body>
+</html>
