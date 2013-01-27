@@ -4,13 +4,11 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
-public class TheoryLoader {
+public class DataLoader {
 
 	private static final String[] TheoryResourceNames = {
-		"com/live/rrutt/newsgoggles/Articles.pl",
-		"com/live/rrutt/newsgoggles/Preferences.pl",
-		"com/live/rrutt/newsgoggles/Rules.pl",
-		"com/live/rrutt/newsgoggles/Test.pl",
+		"com/live/rrutt/newsgoggles/data/Articles.pl",
+		"com/live/rrutt/newsgoggles/data/Preferences.pl"
 	};
 	
 	public String load() {
@@ -44,11 +42,20 @@ public class TheoryLoader {
 			InputStreamReader isr = new InputStreamReader(theoryInputStream);
 			BufferedReader br = new BufferedReader(isr);
 
+			boolean skippingComments = false;
 			String s = br.readLine();
 			while (s != null) {
 				// System.out.println(s);
-				sb.append(s);
-				sb.append('\n');
+				if (skippingComments) {
+					if (s.trim().endsWith("*/")) {
+						skippingComments = false;
+					}
+				} else if (s.trim().startsWith("/*")) {
+					skippingComments = true;
+				} else {
+					sb.append(s);
+					sb.append('\n');
+				}
 
 				s = br.readLine();
 			}

@@ -1,5 +1,6 @@
 package com.live.rrutt.newsgoggles;
 
+import com.live.rrutt.newsgoggles.scala.RulesEngine;
 import java.io.*;
 import java.util.List;
 
@@ -15,10 +16,7 @@ public class NewsGoggles {
 
 		for (String arg : args) {
 			if ((arg.length() > 1) && (arg.charAt(0) == '-')) {
-				if (arg.equalsIgnoreCase("-trace")) {
-//					PrologLibrary.traceEnabled = true;
-					System.out.println("Trace output enabled.");
-				} else if (arg.equalsIgnoreCase("-test")) {
+				if (arg.equalsIgnoreCase("-test")) {
 					testing = true;
 					System.out.println("Test mode enabled.");
 				} else {
@@ -33,11 +31,19 @@ public class NewsGoggles {
 
 	private void run() {
 		try {
-			TheoryLoader loader = new TheoryLoader();
-			String theoryText = loader.load();
+			DataLoader loader = new DataLoader();
+			String dataText = loader.load();
+			
+//			System.out.println("Data Text:");
+//			System.out.print(dataText);
 
 //			Theory theory = new Theory(theoryText);
 //			engine.setTheory(theory);
+			
+			boolean dataOk = RulesEngine.loadData(dataText);
+			if (!dataOk) {
+				throw new Exception("Invalid data text.");
+			}
 
 			if (testing) {
 //				SolveInfo testInfo = engine.solve("test.");
