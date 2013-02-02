@@ -88,8 +88,9 @@ class RulesDataParser extends JavaTokenParsers {
   def subscriber = textString
   
   def textString = stringLiteral ^^ {
+    // Strip off any surrounding quotes.
     case s if (s.startsWith("\"") && s.endsWith("\"")) => {
-      s.substring(0, (s.length() - 1)).substring(1);
+      s.substring(0, (s.length() - 1)).substring(1)
     }
     case s => s
   }
