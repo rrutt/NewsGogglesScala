@@ -1,7 +1,6 @@
 package com.live.rrutt.newsgoggles.scala
 
 import com.live.rrutt.newsgoggles.NewsGoggles
-import com.live.rrutt.hurricane.scala._
 import com.live.rrutt.ui._
 import scala.collection._
 
@@ -174,7 +173,6 @@ object RulesEngine {
   }
   
   // Print out the current Article feed for a Subscriber.	
-
   def show_news(s: String) = {
     println
 	println("Articles subscribed by %s:".format(s))
@@ -196,7 +194,6 @@ object RulesEngine {
    * and the Subscriber preferences.
    */
   def loadData(rulesDataText: String): Boolean = {
-    //    RulesDataDsl.parseRules(rulesDataText)
     val p = new RulesDataParser
     val parseResult = p.parseAll(p.rulesList, rulesDataText) 
     val parsedRulesData = parseResult match {
