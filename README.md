@@ -5,10 +5,9 @@ News Goggles - Rules Engine in Scala and Java
   to apply matchmaker rules. These rules dispatch news feeds to
   readers based on their personal preferences.
 
-
   This demonstration rules engine uses Scala.
   
-    http://www.scala-lang.org/
+  <http://www.scala-lang.org/>
 
   To run the demo, open a command-prompt (terminal) window and navigate 
   to the out sub-folder, containing the JAR files. 
@@ -22,7 +21,9 @@ News Goggles - Rules Engine in Scala and Java
   For more information, open the NewsGogglesScala.html file from the doc sub-folder
   in any web browser.
   
-  Also see this WordPress blog article:
+  Also see these WordPress blog articles:
+
+  <http://rickrutt.wordpress.com/news-goggles-rules-engine-demo-in-prolog-and-java/>
   
-    http://rickrutt.wordpress.com/news-goggles-rules-engine-demo-in-scala-and-java/
+  <http://rickrutt.wordpress.com/news-goggles-rules-engine-demo-in-scala-and-java/>
 
