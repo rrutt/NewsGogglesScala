@@ -6,6 +6,10 @@ import com.live.rrutt.newsgoggles.scala.test.RulesEngineTest;
 public class NewsGoggles {
 
 	private static Boolean testing = false;
+	
+	public NewsGoggles() {
+		this(new String[] {});
+	}
 
 	public NewsGoggles(String[] args) {
 		System.out
@@ -28,15 +32,19 @@ public class NewsGoggles {
 		}
 	}
 
+	public void load() throws Exception {
+		DataLoader loader = new DataLoader();
+		String dataText = loader.load();
+		
+		boolean dataOk = RulesEngine.loadData(dataText);
+		if (!dataOk) {
+			throw new Exception("Invalid data text.");
+		}
+	}
+
 	private void run() {
 		try {
-			DataLoader loader = new DataLoader();
-			String dataText = loader.load();
-			
-			boolean dataOk = RulesEngine.loadData(dataText);
-			if (!dataOk) {
-				throw new Exception("Invalid data text.");
-			}
+			load();
 			
 			RulesEngine.show_all_news();
 
