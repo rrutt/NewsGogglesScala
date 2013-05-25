@@ -194,7 +194,8 @@ object RulesEngine {
    */
   def loadData(rulesDataText: String): Boolean = {
     val p = new RulesDataParser
-    val parseResult = p.parseAll(p.rulesList, rulesDataText) 
+    val rulesDataCharSequence = new com.live.rrutt.newsgoggles.StringDecorator(rulesDataText)
+    val parseResult = p.parseAll(p.rulesList, rulesDataCharSequence) 
     val parsedRulesData = parseResult match {
       case p.Success(ast, _) => {
         println("----- Parse Result:")
